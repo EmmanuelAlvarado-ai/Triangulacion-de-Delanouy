@@ -5,7 +5,7 @@
 **Alumno:** Noé Emmanuel Alvarado Ríos  
 **Fecha:** 4 de noviembre de 2026  
 **Tema:** Triangulación de Delaunay para Interpolación de Alturas  
-**Enlace al repositorio Git:** [https://github.com/TU_USUARIO/TU_REPOSITORIO] *(Reemplazar con tu link real)*
+**Enlace al repositorio Git:** https://github.com/EmmanuelAlvarado-ai/Triangulacion-de-Delanouy/tree/main
 
 ---
 
