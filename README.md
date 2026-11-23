@@ -1,46 +1,95 @@
-# Triangulación de Delaunay para Interpolación de Alturas 
+# Triangulación de Delaunay para Interpolación de Alturas
 
-Este repositorio contiene el código fuente para el Hito Intermedio del proyecto final de la materia **Estructura de Datos y Algoritmos**. Implementa la construcción de la Triangulación de Delaunay en 2D y su aplicación para la interpolación de terrenos 3D.
+Proyecto final de la materia **Estructura de Datos y Algoritmos** (Universidad Anáhuac Querétaro).  
+**Autor:** Noé Emmanuel Alvarado Ríos
 
-## Requisitos del Sistema (Reproducibilidad)
+Implementación modular en Python de la **Triangulación de Delaunay 2D** aplicada a la interpolación de terrenos 3D, comparando una línea base exhaustiva por **Fuerza Bruta** $\mathcal{O}(n^4)$ frente al algoritmo óptimo de **Construcción Incremental Aleatorizada (RIC)** con **Grafo Acíclico Dirigido (DAG)** de localización en $\mathcal{O}(n \log n)$ esperado, aritmética exacta de 100 dígitos (`decimal`) y visualización 3D interactiva paso a paso en el navegador (`py3Dmol`).
 
-Para ejecutar este proyecto y sus pruebas, asegúrate de contar con el siguiente entorno:
+---
 
-* **Python:** Versión `3.10` o superior (Recomendado: `3.12`).
-* **Dependencias:** El módulo base solo utiliza librerías estándar (`decimal`, `itertools`, `math`). Para la visualización interactiva, se requiere instalar `matplotlib`.
+## Requisitos del Sistema
 
-Puedes instalar la dependencia gráfica ejecutando el siguiente comando en tu terminal (o en la consola de PyCharm):
+* **Python:** `3.10` o superior (probado en Python `3.12`).
+* **Librerías estándar utilizadas:** `decimal`, `itertools`, `math`, `random`, `unittest`, `csv`, `time`, `argparse`, `json`, `os`, `webbrowser`.
+* **Dependencias externas:**
+  * `matplotlib` (para generar la gráfica comparativa del benchmark `benchmark_resultados.png`).
+  * `py3Dmol` (para generar el modelo 3D interactivo paso a paso `terreno_delaunay.html`).
+
+Instala las dependencias desde la terminal (o consola de PyCharm / VS Code):
+
 ```bash
-pip install matplotlib
+pip install matplotlib py3Dmol
 ```
 
-## Cómo ejecutar el proyecto
+---
 
-El proyecto está dividido en submódulos lógicos. A continuación se detallan los pasos exactos para evaluar cada componente:
+## Estructura del Repositorio
 
-### 1. Pruebas Unitarias y Fuerza Bruta (Validación del 15%)
-El archivo `test_delaunay.py` contiene la suite de pruebas que valida matemáticamente la implementación. Esto incluye la validación de la **Fuerza Bruta O(n^4)** comparando sus resultados directamente contra el algoritmo Incremental.
+* `models.py`: Clases base `Point` y `Triangle` (con referencias a 3 vecinos para *edge flips* en $\mathcal{O}(1)$ y lista `children` para el DAG), junto con los predicados exactos `orient2d` e `in_circle` configurados a 100 dígitos de precisión (`getcontext().prec = 100`).
+* `delaunay.py`:
+  * `delaunay_brute_force`: Algoritmo de fuerza bruta $\mathcal{O}(n^4)$ (100% funcional) usado como referencia exacta.
+  * `IncrementalDelaunay`: Algoritmo óptimo RIC con súper-triángulo (`SUPER_FACTOR = 1000.0`), localización en DAG (`_locate_dag`), subrutina recursiva `legalize_edge`, remoción del súper-triángulo, registro de eventos (`on_event`) y recolección de métricas (`stats`).
+* `terrain.py`: Generador de terrenos sintéticos `generate_synthetic_terrain` con superficie continua $Z(x,y) = 5\sin(0.5x)\cos(0.5y)$ y perturbación microscópica $\pm 10^{-7}$ para asegurar posición general.
+* `test_delaunay.py`: Suite de **12 pruebas unitarias** (`unittest`) que valida fuerza bruta vs. RIC (DAG y lineal), casos borde de `in_circle`, propiedad del círculo vacío, fórmula de Euler, consistencia bidireccional de adyacencias, remoción del súper-triángulo, duplicados y eficiencia del DAG.
+* `benchmark.py`: Ejecuta el protocolo experimental de 3 niveles (Nivel 1: exactitud $n \in \{10, 25, 50\}$; Nivel 2/3: escalamiento $n \in \{10^2, 5 \times 10^2, 10^3, 5 \times 10^3, 10^4\}$, regresión $R^2$ y métricas por punto). Genera `resultados_benchmark.csv` y `benchmark_resultados.png`.
+* `main_visual.py`: Graba cada división $1 \to 3$ y cada *edge flip* del algoritmo RIC + DAG, genera `terreno_delaunay.html` usando `py3Dmol` y lo abre automáticamente en el navegador con controles de reproducción paso a paso.
 
-Para correr las pruebas, ejecuta en la terminal de la raíz del proyecto:
+---
+
+## Pasos Exactos de Ejecución y Reproducibilidad
+
+### 1. Ejecutar las Pruebas Unitarias y Validación de Fuerza Bruta
+Ejecuta la suite completa de 12 pruebas (incluyendo el contraste exacto entre `delaunay_brute_force` y `IncrementalDelaunay` en $n \in \{10, 25, 50\}$):
+
 ```bash
 python -m unittest test_delaunay.py -v
 ```
-*Si la prueba es exitosa, la consola mostrará un mensaje indicando `OK`, validando que ambas triangulaciones generan un conjunto de aristas topológicamente idéntico.*
 
-### 2. Visualización Paso a Paso y Renderizado 3D
-Para observar la construcción geométrica del algoritmo en tiempo real (inserción incremental y *edge flips*) y el modelo de interpolación de alturas (Z) final:
+Resultado esperado: las 12 pruebas finalizan con estado `OK` sin errores de ejecución.
 
-1. Ejecuta el archivo principal interactivo:
-   
+### 2. Ejecutar el Benchmark Empírico (Fuerza Bruta vs. RIC + DAG vs. Lineal)
+Para una corrida rápida de verificación (Nivel 1 completo + escalamiento hasta $n = 1{,}000$, 1 repetición):
+
 ```bash
-   python main_visual.py
+python benchmark.py --rapido
 ```
-2. Se abrirá una primera ventana interactiva 2D. Podrás ver cómo se va construyendo la malla de triángulos conforme se insertan los puntos de prueba.
-3. Una vez finalizada la construcción 2D, cierra esa ventana y automáticamente se abrirá el **visualizador 3D interactivo**, donde podrás usar el ratón para rotar el terreno generado a partir de las alturas interpoladas.
 
-## Arquitectura del Repositorio
+Para reproducir el benchmark completo reportado en el PDF (hasta $n = 10{,}000$, 3 repeticiones por tamaño):
 
-* `models.py`: Clases base (`Point`, `Triangle`) y cálculos de determinantes matemáticos exactos (Predicado *In-Circle*).
-* `delaunay.py`: Lógica principal. Contiene tanto la Línea Base (`delaunay_brute_force`) como el Algoritmo Óptimo (`IncrementalDelaunay` con subrutina `legalize_edge`).
-* `test_delaunay.py`: Casos de prueba mínimos para validación.
-* `main_visual.py`: Script para generar instancias sintéticas y renderizar resultados.
+```bash
+python benchmark.py
+```
+
+Salidas generadas:
+* `resultados_benchmark.csv`: Tabla con tiempos de CPU, *edge flips*/punto, llamadas a `legalize_edge`/punto y profundidad de búsqueda.
+* `benchmark_resultados.png`: Gráfica comparativa de 3 paneles (tiempo log-log con exponente empírico $\approx 1.13$, estabilidad de flips y saltos del DAG vs. búsqueda lineal).
+
+### 3. Ejecutar la Visualización 3D Interactiva Paso a Paso (`py3Dmol`)
+Genera y abre en tu navegador la animación interactiva de la construcción incremental:
+
+```bash
+python main_visual.py
+```
+
+> **Nota sobre la cantidad de puntos:** Por defecto, el visualizador genera **60 puntos** (lo que produce 198 cuadros de animación entre inserciones, *edge flips* y el modelo final). Si deseas cambiar la cantidad o agregar más puntos, utiliza el parámetro `--n` desde la terminal, por ejemplo:
+>
+> ```bash
+> python main_visual.py --n 150
+> ```
+
+También puedes combinarlo con otras opciones personalizadas (`--seed` para variar el relieve y `--salida` para elegir el nombre del archivo HTML):
+
+```bash
+python main_visual.py --n 150 --seed 7 --salida terreno_delaunay.html
+```
+
+En la ventana del navegador puedes usar los botones de reproducción (`⏮`, `◀`, `⏸/▶`, `▶`, `⏭`), el deslizador de paso, el control de velocidad y el factor de altura `Z` (`Z = 0` muestra la malla 2D clásica), además de rotar y hacer zoom con el ratón.
+
+---
+
+## Resumen de Resultados del Benchmark
+
+* **Exactitud Nivel 1 ($n \in \{10, 25, 50\}$):** 100% de coincidencia topológica entre Fuerza Bruta, RIC + DAG y RIC lineal.
+* **Ajuste Asintótico:** $R^2(n \log n) = 0.9995$ frente a $R^2(n^2) = 0.9660$, con exponente empírico $t \sim n^{1.13}$.
+* **Desempeño en $n = 5{,}000$:** `0.849 s` con DAG vs. `32.031 s` con búsqueda lineal ($37.7\times$ más rápido), reduciendo la búsqueda de `16,650.4` comparaciones a `25.3` saltos promedio ($658\times$ menos pasos).
+* **Reestructuración Local:** Promedio constante de **2.64 a 2.99 *edge flips* por punto** (y **8.27 a 8.98** llamadas a `legalize_edge` por punto) hasta $n = 10{,}000$.
